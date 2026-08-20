@@ -81,7 +81,7 @@ export const PhotosListHeader = () => {
             </div>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
-          <Button variant="default" onClick={modal.onOpen}>
+          <Button variant="default" onClick={() => modal.onOpen()}>
             Add Photo
           </Button>
         </div>

@@ -74,21 +74,15 @@ export const siteConfig = {
   },
 
   /**
-   * Mapbox custom style URLs (optional).
-   * If not set, Mapbox default styles will be used.
-   * Create your own at https://studio.mapbox.com/
-   */
-  mapbox: {
-    lightStyle: "mapbox://styles/ecarry/cldmhu6tr000001n33ujbxf7j",
-    darkStyle: "mapbox://styles/ecarry/clp8hcmd300km01qx78rt0xaw",
-  },
-
-  /**
    * Image loader configuration.
    * Set to "cloudflare" to use the Cloudflare custom image loader,
    * or "default" to use Next.js built-in image optimization.
+   * Use "default" for local development (RustFS/MinIO) since the
+   * Cloudflare loader rewrites URLs to /cdn-cgi/image/ which those
+   * storage backends do not implement.
    */
-  imageLoader: "cloudflare" as "cloudflare" | "default",
+  // imageLoader: "cloudflare" as "cloudflare" | "default",
+  imageLoader: "default" as "cloudflare" | "default",
 
   /**
    * Gear / equipment shown on the About page.

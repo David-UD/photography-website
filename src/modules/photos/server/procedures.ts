@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
-import { and, eq, desc, asc, sql, ilike, count } from "drizzle-orm";
+import { and, eq, desc, asc, ilike, count, sql } from "drizzle-orm";
 import {
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
@@ -8,8 +8,8 @@ import {
   MIN_PAGE_SIZE,
 } from "@/constants";
 import {
-  citySets,
   photos,
+  galleries,
   photosUpdateSchema,
   photosInsertSchema,
 } from "@/db/schema";
@@ -18,16 +18,6 @@ import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { s3Client } from "@/modules/s3/lib/server-client";
 import { escapeLike } from "@/lib/escape-like";
 import { logger } from "@/lib/logger";
-
-function getCitySetName(photo: {
-  city: string | null;
-  region: string | null;
-  countryCode: string | null;
-}) {
-  return photo.countryCode === "JP" || photo.countryCode === "TW"
-    ? photo.region
-    : photo.city;
-}
 
 export const photosRouter = createTRPCRouter({
   create: protectedProcedure
@@ -41,27 +31,24 @@ export const photosRouter = createTRPCRouter({
           .values(values)
           .returning();
 
-        const cityName = getCitySetName(insertedPhoto);
+        // If the photo belongs to a gallery, ensure the gallery has a cover.
+        // Cover logic: if the gallery has no cover yet, the first uploaded
+        // photo becomes the cover; a favorite photo takes precedence.
+        if (insertedPhoto.galleryId) {
+          const [gallery] = await ctx.db
+            .select()
+            .from(galleries)
+            .where(eq(galleries.id, insertedPhoto.galleryId));
 
-        if (insertedPhoto.country && cityName && insertedPhoto.countryCode) {
-          await ctx.db
-            .insert(citySets)
-            .values({
-              country: insertedPhoto.country,
-              countryCode: insertedPhoto.countryCode,
-              city: cityName,
-              photoCount: 1,
-              coverPhotoId: insertedPhoto.id,
-            })
-            .onConflictDoUpdate({
-              target: [citySets.country, citySets.city],
-              set: {
-                countryCode: insertedPhoto.countryCode,
-                photoCount: sql`${citySets.photoCount} + 1`,
-                coverPhotoId: sql`COALESCE(${citySets.coverPhotoId}, ${insertedPhoto.id})`,
+          if (gallery && !gallery.coverPhotoId) {
+            await ctx.db
+              .update(galleries)
+              .set({
+                coverPhotoId: insertedPhoto.id,
                 updatedAt: new Date(),
-              },
-            });
+              })
+              .where(eq(galleries.id, gallery.id));
+          }
         }
 
         return insertedPhoto;
@@ -99,69 +86,34 @@ export const photosRouter = createTRPCRouter({
           });
         }
 
-        // city set related
-        const cityName = getCitySetName(photo);
-        const cityPhotoColumn =
-          photo.countryCode === "JP" || photo.countryCode === "TW"
-            ? photos.region
-            : photos.city;
-
-        if (photo.country && cityName) {
-          const [citySet] = await ctx.db
+        // If this photo is a gallery cover, reassign the cover to another
+        // photo in the same gallery (favorite first) or clear it.
+        if (photo.galleryId) {
+          const [gallery] = await ctx.db
             .select()
-            .from(citySets)
-            .where(
-              and(
-                eq(citySets.country, photo.country),
-                eq(citySets.city, cityName),
-              ),
-            );
+            .from(galleries)
+            .where(eq(galleries.id, photo.galleryId));
 
-          if (citySet) {
-            if (citySet.photoCount <= 1) {
-              // last photo in city — delete the city set
-              await ctx.db
-                .delete(citySets)
-                .where(
-                  and(
-                    eq(citySets.id, citySet.id),
-                    sql`${citySets.photoCount} <= 1`,
-                  ),
-                );
-            } else {
-              // find new cover photo if current cover is being deleted
-              const newCoverPhotoId =
-                citySet.coverPhotoId === photo.id
-                  ? (
-                      await ctx.db
-                        .select({ id: photos.id })
-                        .from(photos)
-                        .where(
-                          and(
-                            eq(photos.country, photo.country),
-                            eq(cityPhotoColumn, cityName),
-                            sql`${photos.id} != ${photo.id}`,
-                          ),
-                        )
-                        .limit(1)
-                    )[0]?.id
-                  : undefined;
+          if (gallery && gallery.coverPhotoId === photo.id) {
+            const remaining = await ctx.db
+              .select()
+              .from(photos)
+              .where(
+                and(
+                  eq(photos.galleryId, gallery.id),
+                  sql`${photos.id} != ${photo.id}`,
+                ),
+              )
+              .orderBy(desc(photos.isFavorite), asc(photos.createdAt))
+              .limit(1);
 
-              await ctx.db
-                .update(citySets)
-                .set({
-                  photoCount: sql`${citySets.photoCount} - 1`,
-                  ...(newCoverPhotoId ? { coverPhotoId: newCoverPhotoId } : {}),
-                  updatedAt: new Date(),
-                })
-                .where(
-                  and(
-                    eq(citySets.country, photo.country),
-                    eq(citySets.city, cityName),
-                    sql`${citySets.photoCount} > 1`,
-                  ),
-                );
-            }
+            await ctx.db
+              .update(galleries)
+              .set({
+                coverPhotoId: remaining[0]?.id ?? null,
+                updatedAt: new Date(),
+              })
+              .where(eq(galleries.id, gallery.id));
           }
         }
 
@@ -248,16 +200,16 @@ export const photosRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const { page, pageSize, search, orderBy } = input;
 
+      const where = search
+        ? ilike(photos.title, `%${escapeLike(search)}%`)
+        : undefined;
+
       const data = await ctx.db
         .select()
         .from(photos)
-        .where(
-          search ? ilike(photos.title, `%${escapeLike(search)}%`) : undefined,
-        )
+        .where(where)
         .orderBy(
-          orderBy === "asc"
-            ? asc(photos.dateTimeOriginal)
-            : desc(photos.dateTimeOriginal),
+          orderBy === "asc" ? asc(photos.createdAt) : desc(photos.createdAt),
         )
         .limit(pageSize)
         .offset((page - 1) * pageSize);
@@ -267,9 +219,7 @@ export const photosRouter = createTRPCRouter({
           count: count(),
         })
         .from(photos)
-        .where(
-          search ? ilike(photos.title, `%${escapeLike(search)}%`) : undefined,
-        );
+        .where(where);
 
       const totalPages = Math.ceil(total.count / pageSize);
 

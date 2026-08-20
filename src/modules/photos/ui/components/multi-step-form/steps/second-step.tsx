@@ -14,19 +14,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { ApertureSelector } from "../../aperture-selector";
-import { ShutterSpeedSelector } from "../../shutter-speed-selector";
-import { ISOSelector } from "../../iso-selector";
-import { ExposureCompensationSelector } from "../../exposure-compensation-selector";
-import { secondStepSchema, SecondStepData, MetadataStepProps } from "../types";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
+import { secondStepSchema, SecondStepData, StepProps } from "../types";
 
 export function SecondStep({
-  exif,
   onNext,
   onBack,
   initialData,
   isSubmitting,
-}: MetadataStepProps) {
+}: StepProps) {
+  const trpc = useTRPC();
+  const { data: galleries } = useSuspenseQuery(
+    trpc.galleries.getMany.queryOptions()
+  );
+
   const form = useForm<
     z.input<typeof secondStepSchema>,
     undefined,
@@ -38,17 +40,7 @@ export function SecondStep({
       description: initialData?.description || "",
       visibility: initialData?.visibility || "private",
       isFavorite: initialData?.isFavorite || false,
-      make: initialData?.make,
-      model: initialData?.model,
-      lensModel: initialData?.lensModel,
-      focalLength: initialData?.focalLength,
-      focalLength35mm: initialData?.focalLength35mm,
-      fNumber: initialData?.fNumber,
-      iso: initialData?.iso,
-      exposureTime: initialData?.exposureTime,
-      exposureCompensation: initialData?.exposureCompensation,
-      latitude: initialData?.latitude,
-      longitude: initialData?.longitude,
+      galleryId: initialData?.galleryId ?? null,
     },
     mode: "onChange",
   });
@@ -124,185 +116,46 @@ export function SecondStep({
               )}
             />
 
-            {/* Camera Parameters Section */}
-            <div className="space-y-4 border-t pt-4">
-              <div>
-                <h3 className="text-sm font-semibold">Camera Parameters</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {exif
-                    ? "Auto-filled from EXIF data. You can edit these values."
-                    : "No EXIF data found. Please fill in manually."}
-                </p>
-              </div>
+            <FormField
+              control={form.control}
+              name="galleryId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Gallery</FormLabel>
+                  <FormControl>
+                    <select
+                      {...field}
+                      value={field.value ?? ""}
+                      className="w-full p-2 border rounded-md bg-background"
+                    >
+                      <option value="">No gallery</option>
+                      {galleries.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.title}
+                        </option>
+                      ))}
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="make"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Camera Make</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., Canon" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="model"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Camera Model</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., EOS R5" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="lensModel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Lens Model</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="e.g., RF 24-70mm f/2.8L" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="focalLength"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Focal Length (mm)</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          step="0.1"
-                          placeholder="50"
-                          value={field.value ?? ""}
-                          onChange={(e) => {
-                            const val = e.target.value
-                              ? parseFloat(e.target.value)
-                              : undefined;
-                            field.onChange(val);
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="focalLength35mm"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>35mm Equivalent (mm)</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          step="0.1"
-                          placeholder="50"
-                          value={field.value ?? ""}
-                          onChange={(e) => {
-                            const val = e.target.value
-                              ? parseFloat(e.target.value)
-                              : undefined;
-                            field.onChange(val);
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-4 gap-4">
-                <FormField
-                  control={form.control}
-                  name="fNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Aperture</FormLabel>
-                      <FormControl>
-                        <ApertureSelector
-                          value={field.value}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="exposureTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Shutter Speed</FormLabel>
-                      <FormControl>
-                        <ShutterSpeedSelector
-                          value={field.value}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="iso"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ISO</FormLabel>
-                      <FormControl>
-                        <ISOSelector
-                          value={field.value}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="exposureCompensation"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>EV</FormLabel>
-                      <FormControl>
-                        <ExposureCompensationSelector
-                          value={field.value}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
+            <FormField
+              control={form.control}
+              name="isFavorite"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                  <FormLabel className="text-base">Favorite</FormLabel>
+                  <FormControl>
+                    <Switch
+                      checked={field.value ?? false}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
           </div>
         </div>
 

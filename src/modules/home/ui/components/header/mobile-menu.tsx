@@ -15,10 +15,10 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { label: "Home", href: "/" },
-  { label: "Travel", href: "/travel" },
-  { label: "Discover", href: "/discover" },
-  { label: "Blog", href: "/blog" },
-  { label: "About", href: "/about" },
+  { label: "Galerías", href: "/galerias" },
+  { label: "Sobre mí", href: "/about" },
+  { label: "Servicios", href: "/servicios" },
+  { label: "Contacto", href: "/contacto" },
 ];
 
 interface Props {

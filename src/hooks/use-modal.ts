@@ -2,12 +2,14 @@ import { create } from "zustand";
 
 interface ModalStore {
   isOpen: boolean;
-  onOpen: () => void;
+  galleryId: string | null;
+  onOpen: (galleryId?: string) => void;
   onClose: () => void;
 }
 
 export const useModal = create<ModalStore>((set) => ({
   isOpen: false,
-  onOpen: () => set({ isOpen: true }),
+  galleryId: null,
+  onOpen: (galleryId) => set({ isOpen: true, galleryId: galleryId ?? null }),
   onClose: () => set({ isOpen: false }),
 }));

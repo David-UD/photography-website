@@ -23,10 +23,10 @@ const Footer = () => {
           title="Pages"
           links={[
             { title: "Home", href: "/" },
-            { title: "Travel", href: "/travel" },
-            { title: "Discover", href: "/discover" },
-            { title: "Blog", href: "/blog" },
-            { title: "About", href: "/about" },
+            { title: "Galerías", href: "/galerias" },
+            { title: "Sobre mí", href: "/about" },
+            { title: "Servicios", href: "/servicios" },
+            { title: "Contacto", href: "/contacto" },
           ]}
         />
         <FooterNav

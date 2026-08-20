@@ -4,7 +4,6 @@ import { ColumnDef } from "@tanstack/react-table";
 import { photoGetMany } from "../../types";
 import { keyToUrl } from "@/modules/s3/lib/key-to-url";
 import BlurImage from "@/components/blur-image";
-import { format } from "date-fns";
 import { FavoriteToggle } from "./favorite-toggle";
 import { VisibilityToggle } from "./visibility-toggle";
 import { DeletePhotoButton } from "./delete-photo-button";
@@ -37,27 +36,6 @@ export const columns: ColumnDef<photoGetMany[number]>[] = [
   {
     accessorKey: "title",
     header: "Title",
-  },
-  {
-    accessorKey: "dateTimeOriginal",
-    header: "Taken At",
-    cell: ({ row }) => {
-      const takenAt = row.original.dateTimeOriginal;
-      if (!takenAt) return <span>-</span>;
-
-      // Use date-fns for consistent formatting across SSR and client
-      const formatted = format(new Date(takenAt), "MMM d, yyyy HH:mm");
-
-      return <span suppressHydrationWarning>{formatted}</span>;
-    },
-  },
-  {
-    accessorKey: "city",
-    header: "City",
-    cell: ({ row }) => {
-      const location = row.original.city + ", " + row.original.countryCode;
-      return <span>{location}</span>;
-    },
   },
   {
     accessorKey: "isFavorite",

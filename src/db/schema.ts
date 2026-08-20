@@ -1,12 +1,10 @@
-import { InferSelectModel, relations, sql } from "drizzle-orm";
+import { InferSelectModel, relations } from "drizzle-orm";
 import {
   boolean,
   timestamp,
   pgTable,
   text,
   real,
-  varchar,
-  integer,
   uuid,
   uniqueIndex,
   index,
@@ -106,78 +104,50 @@ export const photos = pgTable(
     height: real("height").notNull(),
     blurData: text("blur_data").notNull(),
 
-    country: text("country"),
-    countryCode: text("country_code"),
-    region: text("region"),
-    city: text("city"),
-    district: text("district"),
-
-    fullAddress: text("full_address"),
-    placeFormatted: text("place_formatted"),
-
-    make: varchar("make", { length: 255 }),
-    model: varchar("model", { length: 255 }),
-    lensModel: varchar("lens_model", { length: 255 }),
-    focalLength: real("focal_length"),
-    focalLength35mm: real("focal_length_35mm"),
-    fNumber: real("f_number"),
-    iso: integer("iso"),
-    exposureTime: real("exposure_time"),
-    exposureCompensation: real("exposure_compensation"),
-    latitude: real("latitude"),
-    longitude: real("longitude"),
-    gpsAltitude: real("gps_altitude"),
-    dateTimeOriginal: timestamp("datetime_original"),
+    galleryId: uuid("gallery_id"),
 
     ...timestamps,
   },
-  (t) => [
-    index("year_idx").on(sql`DATE_TRUNC('year', ${t.dateTimeOriginal})`),
-    index("city_idx").on(t.city),
-  ]
+  (t) => [index("gallery_idx").on(t.galleryId)],
 );
 
-export const citySets = pgTable(
-  "city_sets",
+export const photosRelations = relations(photos, ({ one }) => ({
+  gallery: one(galleries, {
+    fields: [photos.galleryId],
+    references: [galleries.id],
+  }),
+}));
+
+/***************
+ ****************
+ *  Gallery Table *
+ ****************
+ ***************/
+
+export const galleries = pgTable(
+  "galleries",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    slug: text("slug").notNull().unique(),
     description: text("description"),
+    coverPhotoId: uuid("cover_photo_id"),
+    isPublished: boolean("is_published").default(false).notNull(),
 
-    // GEO DATA
-    country: text("country").notNull(),
-    countryCode: text("country_code").notNull(),
-    city: text("city").notNull(),
-
-    // COVER PHOTO
-    coverPhotoId: uuid("cover_photo_id")
-      .references(() => photos.id)
-      .notNull(),
-
-    photoCount: integer("photo_count").default(0).notNull(),
-
-    // META DATA
     ...timestamps,
   },
-  (t) => [uniqueIndex("unique_city_set").on(t.country, t.city)]
+  (t) => [uniqueIndex("unique_gallery_slug").on(t.slug)],
 );
 
-// Soft relations
-export const citySetsRelations = relations(citySets, ({ one, many }) => ({
+export const galleriesRelations = relations(galleries, ({ one, many }) => ({
   coverPhoto: one(photos, {
-    fields: [citySets.coverPhotoId],
+    fields: [galleries.coverPhotoId],
     references: [photos.id],
   }),
   photos: many(photos),
 }));
 
-export const photosRelations = relations(photos, ({ one }) => ({
-  citySet: one(citySets, {
-    fields: [photos.country, photos.city],
-    references: [citySets.country, citySets.city],
-  }),
-}));
-
-// Schema
+// Photo schemas
 export const photosInsertSchema = createInsertSchema(photos).extend({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().min(1, { message: "Description is required" }),
@@ -189,60 +159,36 @@ export const photosUpdateSchema = createUpdateSchema(photos)
     title: true,
     description: true,
     isFavorite: true,
-    latitude: true,
-    longitude: true,
     visibility: true,
+    galleryId: true,
   })
   .partial();
 
-// Types
-export type Photo = InferSelectModel<typeof photos>;
-export type CitySet = InferSelectModel<typeof citySets>;
-// with photos & cover photo
-export type CitySetWithPhotos = CitySet & { photos: Photo[] } & {
-  coverPhoto: Photo;
-};
-
-/***************
- ****************
- *  Post Table  *
- ****************
- ***************/
-
-export const categories = pgTable("categories", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
+// Gallery schemas
+export const galleriesInsertSchema = z.object({
+  title: z.string().min(1, { message: "Title is required" }),
+  slug: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+      message: "Slug must contain only lowercase letters, numbers and hyphens",
+    })
+    .optional(),
+  description: z.string().optional(),
+  coverPhotoId: z.string().uuid().optional(),
+  isPublished: z.boolean().optional(),
+});
+export const galleriesSelectSchema = createSelectSchema(galleries);
+export const galleriesUpdateSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(1, { message: "Title is required" }).optional(),
+  slug: z.string().optional(),
+  description: z.string().nullable().optional(),
+  isPublished: z.boolean().optional(),
 });
 
-export const postVisibility = pgEnum("post_visibility", ["public", "private"]);
-
-export const posts = pgTable(
-  "posts",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    title: text("title").notNull(),
-    slug: text("slug").notNull().unique(),
-    categoryId: uuid("category_id").references(() => categories.id),
-    visibility: postVisibility("visibility").default("private").notNull(),
-    tags: text("tags").array(),
-    coverImage: text("cover_image"),
-    description: text("description"),
-    content: text("content"),
-    readingTimeMinutes: integer("reading_time_minutes"),
-
-    ...timestamps,
-  },
-  (t) => [
-    index("category_idx").on(t.categoryId),
-    index("tags_idx").on(t.tags),
-    index("slug_idx").on(t.slug),
-  ]
-);
-
 // Types
-export type Post = InferSelectModel<typeof posts>;
-
-// Schema
-export const postsInsertSchema = createInsertSchema(posts);
-export const postsSelectSchema = createSelectSchema(posts);
-export const postsUpdateSchema = createUpdateSchema(posts);
+export type Photo = InferSelectModel<typeof photos>;
+export type Gallery = InferSelectModel<typeof galleries>;
+export type GalleryWithPhotos = Gallery & { photos: Photo[] } & {
+  coverPhoto: Photo | null;
+};

@@ -3,12 +3,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { TExifData, TImageInfo } from "@/modules/photos/lib/utils";
+import { TImageInfo } from "@/modules/photos/lib/utils";
 import { PhotoFormData, INITIAL_FORM_VALUES, STEP_CONFIG } from "./types";
-import type { AddressData } from "@/modules/mapbox/hooks/use-get-address";
 import { FirstStep } from "./steps/first-step";
 import { SecondStep } from "./steps/second-step";
-import { ThirdStep } from "./steps/third-step";
 import { FourthStep } from "./steps/fourth-step";
 import { ProgressBar } from "./components/progress-bar";
 import { StepIndicator } from "./components/step-indicator";
@@ -23,6 +21,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface MultiStepFormProps {
   className?: string;
+  initialGalleryId?: string | null;
   onSubmit?: (data: PhotoFormData) => void;
 }
 
@@ -32,6 +31,7 @@ interface MultiStepFormProps {
 
 export default function MultiStepForm({
   className,
+  initialGalleryId,
   onSubmit,
 }: MultiStepFormProps) {
   const trpc = useTRPC();
@@ -39,6 +39,7 @@ export default function MultiStepForm({
 
   const createPhoto = useMutation(trpc.photos.create.mutationOptions());
   const removeS3Object = useMutation(trpc.s3.deleteFile.mutationOptions());
+
   // ========================================
   // State Management
   // ========================================
@@ -50,28 +51,22 @@ export default function MultiStepForm({
 
   // Form data
   const [formData, setFormData] =
-    useState<Partial<PhotoFormData>>(INITIAL_FORM_VALUES);
+    useState<Partial<PhotoFormData>>({
+      ...INITIAL_FORM_VALUES,
+      galleryId: initialGalleryId ?? null,
+    });
 
   // Upload-related state
   const [url, setUrl] = useState<string | null>(null);
-  const [exif, setExif] = useState<TExifData | null>(null);
   const [imageInfo, setImageInfo] = useState<TImageInfo>();
-
-  // Address state for geocoding
-  const [address, setAddress] = useState<AddressData>(null);
 
   // ========================================
   // Handlers
   // ========================================
 
   // Handle upload success
-  const handleUploadSuccess = (
-    uploadedUrl: string,
-    uploadedExif: TExifData | null,
-    uploadedImageInfo: TImageInfo
-  ) => {
+  const handleUploadSuccess = (uploadedUrl: string, uploadedImageInfo: TImageInfo) => {
     setUrl(uploadedUrl);
-    setExif(uploadedExif);
     setImageInfo(uploadedImageInfo);
   };
 
@@ -79,37 +74,12 @@ export default function MultiStepForm({
   const handleReupload = (url: string) => {
     removeS3Object.mutate({ key: url });
     setUrl(null);
-    setExif(null);
     setImageInfo(undefined);
   };
 
   // Handle next step
   const handleNext = (data: Partial<PhotoFormData>) => {
-    let updatedData = { ...formData, ...data };
-
-    // Step 1: Add upload data and EXIF
-    if (step === 0) {
-      updatedData = {
-        ...updatedData,
-        url: url || "",
-        exif,
-        imageInfo,
-        // Pre-fill camera parameters from EXIF
-        make: exif?.make,
-        model: exif?.model,
-        lensModel: exif?.lensModel,
-        focalLength: exif?.focalLength,
-        focalLength35mm: exif?.focalLength35mm,
-        fNumber: exif?.fNumber,
-        iso: exif?.iso,
-        exposureTime: exif?.exposureTime,
-        exposureCompensation: exif?.exposureCompensation,
-        latitude: exif?.latitude,
-        longitude: exif?.longitude,
-        gpsAltitude: exif?.gpsAltitude,
-        dateTimeOriginal: exif?.dateTimeOriginal,
-      };
-    }
+    const updatedData = { ...formData, ...data, url: url || "" };
 
     setFormData(updatedData);
 
@@ -117,32 +87,16 @@ export default function MultiStepForm({
       // Move to next step
       setStep(step + 1);
     } else {
-      // Final submission - integrate all data including address and image info
+      // Final submission
       const finalData = {
         ...updatedData,
         url: url || "",
         title: updatedData.title || "",
         description: updatedData.description || "",
-        // Add image dimensions and blur data from imageInfo
         aspectRatio: imageInfo ? imageInfo.width / imageInfo.height : 1,
         width: imageInfo?.width || 0,
         height: imageInfo?.height || 0,
         blurData: imageInfo?.blurhash || "",
-        // Add address data from geocoding if available
-        country: address?.features?.[0]?.properties?.context?.country?.name,
-        countryCode:
-          address?.features?.[0]?.properties?.context?.country?.country_code,
-        region: address?.features?.[0]?.properties?.context?.region?.name,
-        city:
-          address?.features?.[0]?.properties?.context?.country?.country_code ===
-            "JP" ||
-          address?.features?.[0]?.properties?.context?.country?.country_code ===
-            "TW"
-            ? address?.features?.[0]?.properties?.context?.region?.name
-            : address?.features?.[0]?.properties?.context?.place?.name,
-        district: address?.features?.[0]?.properties?.context?.locality?.name,
-        fullAddress: address?.features?.[0]?.properties?.full_address,
-        placeFormatted: address?.features?.[0]?.properties?.place_formatted,
       };
 
       setIsSubmitting(true);
@@ -150,7 +104,7 @@ export default function MultiStepForm({
       // Use tRPC mutation instead of callback
       createPhoto.mutate(finalData, {
         onSuccess: async () => {
-          // Invalidate queries to refetch photos list
+          // Invalidate queries to refetch lists
           await queryClient.invalidateQueries(
             trpc.photos.getMany.queryOptions({})
           );
@@ -158,9 +112,14 @@ export default function MultiStepForm({
             trpc.home.getManyLikePhotos.queryOptions({ limit: 10 })
           );
           await queryClient.invalidateQueries(
-            trpc.home.getCitySets.queryOptions({ limit: 9 })
+            trpc.home.getGalleries.queryOptions({ limit: 12 })
           );
-          await queryClient.invalidateQueries(trpc.city.getMany.queryOptions());
+          await queryClient.invalidateQueries(
+            trpc.galleries.getMany.queryOptions()
+          );
+          await queryClient.invalidateQueries(
+            trpc.dashboard.getDashboardStats.queryOptions()
+          );
 
           toast.success("Photo uploaded successfully!");
           setIsComplete(true);
@@ -189,17 +148,13 @@ export default function MultiStepForm({
   // Reset entire form
   const handleReset = () => {
     setStep(0);
-    setFormData(INITIAL_FORM_VALUES);
+    setFormData({
+      ...INITIAL_FORM_VALUES,
+      galleryId: initialGalleryId ?? null,
+    });
     setIsComplete(false);
     setUrl(null);
-    setExif(null);
     setImageInfo(undefined);
-    setAddress(null);
-  };
-
-  // Handle address update from geocoding
-  const handleAddressUpdate = (addressData: AddressData) => {
-    setAddress(addressData);
   };
 
   // ========================================
@@ -229,7 +184,6 @@ export default function MultiStepForm({
           <FirstStep
             {...commonProps}
             url={url}
-            exif={exif}
             imageInfo={imageInfo}
             onUploadSuccess={handleUploadSuccess}
             onReupload={handleReupload}
@@ -237,16 +191,8 @@ export default function MultiStepForm({
           />
         );
       case 1:
-        return <SecondStep {...commonProps} exif={exif} onNext={handleNext} />;
+        return <SecondStep {...commonProps} onNext={handleNext} />;
       case 2:
-        return (
-          <ThirdStep
-            {...commonProps}
-            onNext={handleNext}
-            onAddressUpdate={handleAddressUpdate}
-          />
-        );
-      case 3:
         return <FourthStep {...commonProps} onNext={handleNext} />;
       default:
         return null;

@@ -94,20 +94,20 @@ export function SectionCardsView() {
       </Card>
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Countries Visited</CardDescription>
+          <CardDescription>Total Galleries</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {stats.totalCountries}
+            {stats.totalGalleries}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              {stats.countriesPercentChange >= 0 ? (
+              {stats.galleriesPercentChange >= 0 ? (
                 <>
-                  <IconTrendingUp />+{stats.countriesPercentChange}%
+                  <IconTrendingUp />+{stats.galleriesPercentChange}%
                 </>
               ) : (
                 <>
                   <IconTrendingDown />
-                  {stats.countriesPercentChange}%
+                  {stats.galleriesPercentChange}%
                 </>
               )}
             </Badge>
@@ -115,48 +115,15 @@ export function SectionCardsView() {
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            {stats.countriesPercentChange >= 0
-              ? "New countries"
-              : "Countries decreased"}{" "}
+            {stats.galleriesPercentChange >= 0
+              ? "New galleries"
+              : "Galleries decreased"}{" "}
             <IconTrendingUp className="size-4" />
           </div>
           <div className="text-muted-foreground">
-            {Math.abs(stats.countriesPercentChange)}%{" "}
-            {stats.countriesPercentChange >= 0 ? "increase" : "decrease"} vs
+            {Math.abs(stats.galleriesPercentChange)}%{" "}
+            {stats.galleriesPercentChange >= 0 ? "increase" : "decrease"} vs
             last year
-          </div>
-        </CardFooter>
-      </Card>
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>Total Cities</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {stats.totalCities}
-          </CardTitle>
-          <CardAction>
-            <Badge variant="outline">
-              {stats.citiesPercentChange >= 0 ? (
-                <>
-                  <IconTrendingUp />+{stats.citiesPercentChange}%
-                </>
-              ) : (
-                <>
-                  <IconTrendingDown />
-                  {stats.citiesPercentChange}%
-                </>
-              )}
-            </Badge>
-          </CardAction>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            {stats.citiesPercentChange >= 0 ? "New cities" : "Cities decreased"}{" "}
-            <IconTrendingUp className="size-4" />
-          </div>
-          <div className="text-muted-foreground">
-            {Math.abs(stats.citiesPercentChange)}%{" "}
-            {stats.citiesPercentChange >= 0 ? "increase" : "decrease"} vs last
-            year
           </div>
         </CardFooter>
       </Card>

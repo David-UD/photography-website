@@ -14,9 +14,6 @@ const page = async () => {
     trpc.dashboard.getPhotosCountByMonth.queryOptions({ years: 3 })
   );
   void queryClient.prefetchQuery(
-    trpc.dashboard.getVisitedCountriesWithGeoJson.queryOptions()
-  );
-  void queryClient.prefetchQuery(
     trpc.dashboard.getDashboardStats.queryOptions()
   );
 
@@ -25,7 +22,7 @@ const page = async () => {
       <div>
         <h1 className="text-2xl font-bold">Overview</h1>
         <p className="text-muted-foreground ">
-          See your photos, travel history, and more.
+          See your photos and galleries at a glance.
         </p>
       </div>
       <div className="@container/main flex flex-1 flex-col">

@@ -2,8 +2,7 @@ import {
   IconLayoutDashboard,
   IconPhoto,
   IconUser,
-  IconBuildingPavilion,
-  IconNotebook,
+  IconPhotoFilled,
 } from "@tabler/icons-react";
 
 interface IconMapProps {
@@ -14,14 +13,12 @@ const IconMap = ({ icon }: IconMapProps) => {
   switch (icon) {
     case "dashboard":
       return <IconLayoutDashboard />;
+    case "gallery":
+      return <IconPhotoFilled />;
     case "photo":
       return <IconPhoto />;
     case "user":
       return <IconUser />;
-    case "city":
-      return <IconBuildingPavilion />;
-    case "post":
-      return <IconNotebook />;
     default:
       return <IconLayoutDashboard />;
   }

@@ -1,12 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { s3Client } from "@/modules/s3/lib/upload-client";
-import {
-  type TExifData,
-  type TImageInfo,
-  getPhotoExif,
-  getImageInfo,
-} from "@/modules/photos/lib/utils";
+import { type TImageInfo, getImageInfo } from "@/modules/photos/lib/utils";
 import { DEFAULT_PHOTOS_UPLOAD_FOLDER } from "@/constants";
 import { useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
@@ -14,11 +9,7 @@ import { logger } from "@/lib/logger";
 
 interface UsePhotoUploadProps {
   folder?: string;
-  onUploadSuccess?: (
-    url: string,
-    exif: TExifData | null,
-    imageInfo: TImageInfo
-  ) => void;
+  onUploadSuccess?: (url: string, imageInfo: TImageInfo) => void;
 }
 
 export function usePhotoUpload({
@@ -28,7 +19,6 @@ export function usePhotoUpload({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const [exif, setExif] = useState<TExifData | null>(null);
   const [imageInfo, setImageInfo] = useState<TImageInfo | null>(null);
 
   const trpc = useTRPC();
@@ -39,12 +29,8 @@ export function usePhotoUpload({
   const handleUpload = async (file: File) => {
     try {
       setIsUploading(true);
-      const [exifData, imageInfo] = await Promise.all([
-        getPhotoExif(file),
-        getImageInfo(file),
-      ]);
-      setExif(exifData);
-      setImageInfo(imageInfo);
+      const info = await getImageInfo(file);
+      setImageInfo(info);
 
       const { publicUrl } = await s3Client.upload({
         file,
@@ -69,15 +55,14 @@ export function usePhotoUpload({
 
       setUploadedImageUrl(publicUrl);
       toast.success("Photo uploaded successfully!");
-      onUploadSuccess?.(publicUrl, exifData, imageInfo);
+      onUploadSuccess?.(publicUrl, info);
     } catch (error) {
-      setExif(null);
       setImageInfo(null);
       setUploadedImageUrl(null);
 
       logger.error("Photo upload failed", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to upload photo"
+        error instanceof Error ? error.message : String(error)
       );
     } finally {
       setIsUploading(false);
@@ -88,7 +73,6 @@ export function usePhotoUpload({
     isUploading,
     uploadProgress,
     uploadedImageUrl,
-    exif,
     imageInfo,
     handleUpload,
   };

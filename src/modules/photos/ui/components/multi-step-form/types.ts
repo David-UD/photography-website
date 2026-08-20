@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TExifData, TImageInfo } from "@/modules/photos/lib/utils";
+import { TImageInfo } from "@/modules/photos/lib/utils";
 
 // ============================================================================
 // FORM SCHEMAS
@@ -17,29 +17,13 @@ export const secondStepSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().min(1, { message: "Description is required" }),
   visibility: z.enum(["private", "public"]).default("private"),
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
-  gpsAltitude: z.number().optional(),
-  dateTimeOriginal: z.date().optional(),
   isFavorite: z.boolean().default(false),
-  // Camera parameters
-  make: z.string().optional(),
-  model: z.string().optional(),
-  lensModel: z.string().optional(),
-  focalLength: z.number().optional(),
-  focalLength35mm: z.number().optional(),
-  fNumber: z.number().optional(),
-  iso: z.number().optional(),
-  exposureTime: z.number().optional(),
-  exposureCompensation: z.number().optional(),
+  galleryId: z.string().uuid().nullish(),
 });
 
 export type SecondStepData = z.infer<typeof secondStepSchema>;
 
-export const thirdStepSchema = z.object({
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
-});
+export const thirdStepSchema = z.object({});
 
 export type ThirdStepData = z.infer<typeof thirdStepSchema>;
 
@@ -53,7 +37,6 @@ export const formSchema = z.object({
   ...secondStepSchema.shape,
   ...thirdStepSchema.shape,
   ...fourthStepSchema.shape,
-  exif: z.custom<TExifData | null>().optional(),
   imageInfo: z.custom<TImageInfo>().optional(),
 });
 
@@ -72,18 +55,9 @@ export interface StepProps {
 
 export interface UploadStepProps extends StepProps {
   url: string | null;
-  exif: TExifData | null;
   imageInfo: TImageInfo | undefined;
-  onUploadSuccess: (
-    url: string,
-    exif: TExifData | null,
-    imageInfo: TImageInfo
-  ) => void;
+  onUploadSuccess: (url: string, imageInfo: TImageInfo) => void;
   onReupload: (url: string) => void;
-}
-
-export interface MetadataStepProps extends StepProps {
-  exif: TExifData | null;
 }
 
 // ============================================================================
@@ -96,6 +70,7 @@ export const INITIAL_FORM_VALUES: Partial<PhotoFormData> = {
   description: "",
   visibility: "private",
   isFavorite: false,
+  galleryId: null,
 };
 
 export const STEP_CONFIG = [
@@ -105,14 +80,9 @@ export const STEP_CONFIG = [
     description: "Upload your photo",
   },
   {
-    id: "metadata",
-    title: "Metadata",
-    description: "Add metadata to your photo",
-  },
-  {
-    id: "location",
-    title: "Location",
-    description: "Add location to your photo",
+    id: "details",
+    title: "Details",
+    description: "Add details to your photo",
   },
   {
     id: "preview",

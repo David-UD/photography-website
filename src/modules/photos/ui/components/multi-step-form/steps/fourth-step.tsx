@@ -34,22 +34,6 @@ export function FourthStep({
             url={initialData.url}
             title={initialData.title}
             imageInfo={initialData.imageInfo}
-            make={initialData?.make || initialData?.exif?.make}
-            model={initialData?.model || initialData?.exif?.model}
-            lensModel={initialData?.lensModel || initialData?.exif?.lensModel}
-            focalLength35mm={
-              initialData?.focalLength35mm || initialData?.exif?.focalLength35mm
-            }
-            fNumber={initialData?.fNumber || initialData?.exif?.fNumber}
-            exposureTime={
-              initialData?.exposureTime || initialData?.exif?.exposureTime
-            }
-            iso={initialData?.iso || initialData?.exif?.iso}
-            dateTimeOriginal={
-              initialData?.exif?.dateTimeOriginal
-                ? initialData.exif.dateTimeOriginal.toString()
-                : undefined
-            }
             className="w-full"
           />
         )}

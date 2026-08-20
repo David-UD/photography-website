@@ -23,37 +23,24 @@ const data = {
       icon: "dashboard",
     },
     {
-      title: "Cities",
-      url: "/dashboard/cities",
-      icon: "city",
+      title: "Galerías",
+      url: "/dashboard/galerias",
+      icon: "gallery",
     },
     {
-      title: "Photos",
+      title: "Fotografías",
       url: "/dashboard/photos",
       icon: "photo",
     },
     {
-      title: "Posts",
-      url: "/dashboard/posts",
-      icon: "post",
-    },
-    {
-      title: "Profile",
+      title: "Perfil",
       url: "/dashboard/profile",
       icon: "user",
     },
   ],
   navSecondary: [
     {
-      title: "Settings",
-      url: "#",
-    },
-    {
-      title: "Get Help",
-      url: "#",
-    },
-    {
-      title: "Search",
+      title: "Configuración",
       url: "#",
     },
   ],

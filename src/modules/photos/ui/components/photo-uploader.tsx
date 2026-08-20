@@ -2,14 +2,10 @@
 
 import { usePhotoUpload } from "../../hooks/use-photo-upload";
 import { UploadZone } from "./upload-zone";
-import type { TExifData, TImageInfo } from "@/modules/photos/lib/utils";
+import type { TImageInfo } from "@/modules/photos/lib/utils";
 
 interface PhotoUploaderProps {
-  onUploadSuccess?: (
-    url: string,
-    exif: TExifData | null,
-    imageInfo: TImageInfo
-  ) => void;
+  onUploadSuccess?: (url: string, imageInfo: TImageInfo) => void;
   folder?: string;
   onCreateSuccess?: () => void;
 }

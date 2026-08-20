@@ -5,13 +5,12 @@ import { ErrorBoundary } from "react-error-boundary";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 
 import ProfileCard from "@/modules/home/ui/components/profile-card";
-import LatestTravelCard from "@/modules/home/ui/components/latest-travel-card";
 import Footer from "@/components/footer";
 
 import {
-  CitiesView,
-  CitiesViewLoadingStatus,
-} from "@/modules/home/ui/views/cities-view";
+  GalleriesView,
+  GalleriesViewLoadingStatus,
+} from "@/modules/home/ui/views/galleries-view";
 import {
   SliderViewLoadingStatus,
   SliderView,
@@ -23,7 +22,7 @@ const page = async () => {
     trpc.home.getManyLikePhotos.queryOptions({ limit: 10 })
   );
   void queryClient.prefetchQuery(
-    trpc.home.getCitySets.queryOptions({ limit: 12 })
+    trpc.home.getGalleries.queryOptions({ limit: 12 })
   );
 
   return (
@@ -44,15 +43,15 @@ const page = async () => {
           {/* PROFILE CARD  */}
           <ProfileCard />
 
-          {/* LAST TRAVEL CARD  */}
-          <LatestTravelCard />
-
-          {/* CITY SETS CARD  */}
-          <Suspense fallback={<CitiesViewLoadingStatus />}>
-            <ErrorBoundary fallback={<p>Something went wrong</p>}>
-              <CitiesView />
-            </ErrorBoundary>
-          </Suspense>
+          {/* GALLERIES CARD  */}
+          <div className="p-4 lg:p-5 bg-muted rounded-xl">
+            <p className="text-sm font-light mb-3">Galerías</p>
+            <Suspense fallback={<GalleriesViewLoadingStatus />}>
+              <ErrorBoundary fallback={<p>Something went wrong</p>}>
+                <GalleriesView />
+              </ErrorBoundary>
+            </Suspense>
+          </div>
 
           <Footer />
         </div>

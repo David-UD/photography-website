@@ -1,22 +1,7 @@
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
-import { photos, citySets } from "@/db/schema";
+import { photos, galleries } from "@/db/schema";
 import { sql, and, gte } from "drizzle-orm";
 import { z } from "zod";
-import fs from "fs/promises";
-import path from "path";
-
-let worldGeoJsonCache: GeoJSON.FeatureCollection | null = null;
-
-const loadWorldGeoJson = async (): Promise<GeoJSON.FeatureCollection> => {
-  if (worldGeoJsonCache) return worldGeoJsonCache;
-
-  const filePath = path.join(process.cwd(), "public", "world.geojson");
-  const raw = await fs.readFile(filePath, "utf-8");
-  const parsed = JSON.parse(raw) as GeoJSON.FeatureCollection;
-
-  worldGeoJsonCache = parsed;
-  return parsed;
-};
 
 export const dashboardRouter = createTRPCRouter({
   getPhotosCountByMonth: protectedProcedure
@@ -36,13 +21,13 @@ export const dashboardRouter = createTRPCRouter({
 
       const result = await ctx.db
         .select({
-          month: sql<string>`TO_CHAR(${photos.dateTimeOriginal}, 'YYYY-MM')`,
+          month: sql<string>`TO_CHAR(${photos.createdAt}, 'YYYY-MM')`,
           count: sql<number>`COUNT(*)::int`,
         })
         .from(photos)
-        .where(sql`${photos.dateTimeOriginal} >= ${startDate}`)
-        .groupBy(sql`TO_CHAR(${photos.dateTimeOriginal}, 'YYYY-MM')`)
-        .orderBy(sql`TO_CHAR(${photos.dateTimeOriginal}, 'YYYY-MM')`);
+        .where(sql`${photos.createdAt} >= ${startDate}`)
+        .groupBy(sql`TO_CHAR(${photos.createdAt}, 'YYYY-MM')`)
+        .orderBy(sql`TO_CHAR(${photos.createdAt}, 'YYYY-MM')`);
 
       // Fill in missing months with 0 count
       const monthlyData: { month: string; count: number }[] = [];
@@ -64,101 +49,11 @@ export const dashboardRouter = createTRPCRouter({
       return monthlyData;
     }),
 
-  getVisitedCountries: protectedProcedure.query(async ({ ctx }) => {
-    const result = await ctx.db
-      .select({
-        country: photos.country,
-        countryCode: photos.countryCode,
-        photoCount: sql<number>`COUNT(*)::int`,
-        firstVisit: sql<Date>`MIN(${photos.dateTimeOriginal})`,
-        lastVisit: sql<Date>`MAX(${photos.dateTimeOriginal})`,
-      })
-      .from(photos)
-      .where(
-        sql`${photos.country} IS NOT NULL AND ${photos.countryCode} IS NOT NULL`,
-      )
-      .groupBy(photos.country, photos.countryCode)
-      .orderBy(sql`COUNT(*) DESC`);
-    return result;
-  }),
-
-  getVisitedCountriesWithGeoJson: protectedProcedure.query(async ({ ctx }) => {
-    // Aggregate visited countries with counts and dates
-    const countries = await ctx.db
-      .select({
-        country: photos.country,
-        countryCode: photos.countryCode,
-        photoCount: sql<number>`COUNT(*)::int`,
-        firstVisit: sql<Date>`MIN(${photos.dateTimeOriginal})`,
-        lastVisit: sql<Date>`MAX(${photos.dateTimeOriginal})`,
-      })
-      .from(photos)
-      .where(
-        sql`${photos.country} IS NOT NULL AND ${photos.countryCode} IS NOT NULL`,
-      )
-      .groupBy(photos.country, photos.countryCode)
-      .orderBy(sql`COUNT(*) DESC`);
-
-    const visitedSet = new Set(
-      countries.map((c) => c.countryCode as string).filter(Boolean),
-    );
-
-    const world = await loadWorldGeoJson();
-
-    const features = world.features.filter((feature) => {
-      const id = String(feature.id ?? "");
-      return visitedSet.has(id);
-    });
-
-    return {
-      countries,
-      geoJson: {
-        ...world,
-        features,
-      } as GeoJSON.FeatureCollection,
-    };
-  }),
-
-  getVisitedCountriesGeoJson: protectedProcedure.query(async ({ ctx }) => {
-    const visited = await ctx.db
-      .select({
-        countryCode: photos.countryCode,
-      })
-      .from(photos)
-      .where(sql`${photos.countryCode} IS NOT NULL`)
-      .groupBy(photos.countryCode);
-
-    const visitedSet = new Set(
-      visited.map((c) => c.countryCode as string).filter(Boolean),
-    );
-
-    if (visitedSet.size === 0) {
-      const world = await loadWorldGeoJson();
-      return {
-        ...world,
-        features: [],
-      } as GeoJSON.FeatureCollection;
-    }
-
-    const world = await loadWorldGeoJson();
-
-    const features = world.features.filter((feature) => {
-      const id = String(feature.id ?? "");
-      return visitedSet.has(id);
-    });
-
-    return {
-      ...world,
-      features,
-    } as GeoJSON.FeatureCollection;
-  }),
-
   getDashboardStats: protectedProcedure.query(async ({ ctx }) => {
     // Get total photo count
     const totalPhotosResult = await ctx.db
       .select({ count: sql<number>`COUNT(*)::int` })
-      .from(photos)
-      .where(sql`${photos.dateTimeOriginal} IS NOT NULL`);
+      .from(photos);
 
     const totalPhotos = totalPhotosResult[0]?.count ?? 0;
 
@@ -168,12 +63,7 @@ export const dashboardRouter = createTRPCRouter({
     const thisYearPhotosResult = await ctx.db
       .select({ count: sql<number>`COUNT(*)::int` })
       .from(photos)
-      .where(
-        and(
-          gte(photos.dateTimeOriginal, yearStart),
-          sql`${photos.dateTimeOriginal} IS NOT NULL`,
-        ),
-      );
+      .where(gte(photos.createdAt, yearStart));
 
     const thisYearPhotos = thisYearPhotosResult[0]?.count ?? 0;
 
@@ -185,9 +75,8 @@ export const dashboardRouter = createTRPCRouter({
       .from(photos)
       .where(
         and(
-          gte(photos.dateTimeOriginal, lastYearStart),
-          sql`${photos.dateTimeOriginal} < ${lastYearEnd}`,
-          sql`${photos.dateTimeOriginal} IS NOT NULL`,
+          gte(photos.createdAt, lastYearStart),
+          sql`${photos.createdAt} < ${lastYearEnd}`,
         ),
       );
 
@@ -203,74 +92,42 @@ export const dashboardRouter = createTRPCRouter({
             ((thisYearPhotos - lastYearPhotos) / lastYearPhotos) * 100,
           );
 
-    // Get total countries visited
-    const countriesResult = await ctx.db
-      .selectDistinct({ country: photos.country })
-      .from(photos)
-      .where(sql`${photos.country} IS NOT NULL`);
+    // Get total galleries
+    const totalGalleriesResult = await ctx.db
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(galleries);
 
-    const totalCountries = countriesResult.length;
+    const totalGalleries = totalGalleriesResult[0]?.count ?? 0;
 
-    // Get last year countries visited
-    const lastYearCountriesResult = await ctx.db
-      .selectDistinct({ country: photos.country })
-      .from(photos)
+    // Get last year galleries
+    const lastYearGalleriesResult = await ctx.db
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(galleries)
       .where(
         and(
-          gte(photos.dateTimeOriginal, lastYearStart),
-          sql`${photos.dateTimeOriginal} < ${lastYearEnd}`,
-          sql`${photos.country} IS NOT NULL`,
+          gte(galleries.createdAt, lastYearStart),
+          sql`${galleries.createdAt} < ${lastYearEnd}`,
         ),
       );
 
-    const lastYearCountries = lastYearCountriesResult.length;
+    const lastYearGalleries = lastYearGalleriesResult[0]?.count ?? 0;
 
-    // Calculate year-over-year percentage change for countries
-    const countriesPercentChange =
-      lastYearCountries === 0
-        ? totalCountries > 0
+    // Calculate year-over-year percentage change for galleries
+    const galleriesPercentChange =
+      lastYearGalleries === 0
+        ? totalGalleries > 0
           ? 100
           : 0
         : Math.round(
-            ((totalCountries - lastYearCountries) / lastYearCountries) * 100,
+            ((totalGalleries - lastYearGalleries) / lastYearGalleries) * 100,
           );
-
-    // Get total cities
-    const citiesResult = await ctx.db
-      .selectDistinct({ city: citySets.city })
-      .from(citySets);
-
-    const totalCities = citiesResult.length;
-
-    // Get last year cities
-    const lastYearCitiesResult = await ctx.db
-      .selectDistinct({ city: citySets.city })
-      .from(citySets)
-      .where(
-        and(
-          gte(citySets.createdAt, lastYearStart),
-          sql`${citySets.createdAt} < ${lastYearEnd}`,
-        ),
-      );
-
-    const lastYearCities = lastYearCitiesResult.length;
-
-    // Calculate year-over-year percentage change for cities
-    const citiesPercentChange =
-      lastYearCities === 0
-        ? totalCities > 0
-          ? 100
-          : 0
-        : Math.round(((totalCities - lastYearCities) / lastYearCities) * 100);
 
     return {
       totalPhotos,
       thisYearPhotos,
       thisYearPercentChange,
-      totalCountries,
-      countriesPercentChange,
-      totalCities,
-      citiesPercentChange,
+      totalGalleries,
+      galleriesPercentChange,
     };
   }),
 });

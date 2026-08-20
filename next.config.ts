@@ -21,6 +21,10 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   images: {
     qualities: [65, 75],
+    // In local development we serve images straight from the storage backend
+    // (RustFS/MinIO) without going through the Next.js optimizer, since the
+    // optimizer's remote fetch can be blocked/unreachable from the container.
+    ...(process.env.NODE_ENV === "development" ? { unoptimized: true } : {}),
     ...(useCloudflareLoader && {
       loader: "custom",
       loaderFile: "./src/lib/cloudflare-image-loader.ts",

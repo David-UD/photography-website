@@ -8,10 +8,10 @@ const Navbar = () => {
       <div className="flex items-center gap-5 pb-3 px-4 relative">
         <Logo />
         <div className="hidden lg:flex gap-4">
-          <FlipLink href="/travel">Travel</FlipLink>
-          <FlipLink href="/discover">Discover</FlipLink>
-          <FlipLink href="/blog">Blog</FlipLink>
-          <FlipLink href="/about">About</FlipLink>
+          <FlipLink href="/galerias">Galerías</FlipLink>
+          <FlipLink href="/about">Sobre mí</FlipLink>
+          <FlipLink href="/servicios">Servicios</FlipLink>
+          <FlipLink href="/contacto">Contacto</FlipLink>
         </div>
         <ThemeSwitch />
       </div>

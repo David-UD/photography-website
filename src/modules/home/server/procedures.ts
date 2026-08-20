@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, baseProcedure } from "@/trpc/init";
-import { desc, eq, and } from "drizzle-orm";
-import { citySets, photos } from "@/db/schema";
+import { desc, eq, and, inArray, sql } from "drizzle-orm";
+import { galleries, photos } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
 
 export const homeRouter = createTRPCRouter({
@@ -25,40 +25,82 @@ export const homeRouter = createTRPCRouter({
 
       return data;
     }),
-  getCitySets: baseProcedure
+  // Screensaver: all public favorite photos
+  getScreensaverPhotos: baseProcedure.query(async ({ ctx }) => {
+    const data = await ctx.db
+      .select()
+      .from(photos)
+      .where(
+        and(eq(photos.isFavorite, true), eq(photos.visibility, "public")),
+      )
+      .orderBy(desc(photos.updatedAt))
+      .limit(500);
+
+    return data;
+  }),
+  // Public published galleries with cover + count (home + /galerias)
+  getGalleries: baseProcedure
     .input(
       z.object({
-        limit: z.number().min(1).max(100).default(10),
+        limit: z.number().min(1).max(100).default(12),
       }),
     )
     .query(async ({ ctx, input }) => {
       const { limit } = input;
 
-      const data = await ctx.db
-        .select({
-          id: citySets.id,
-          country: citySets.country,
-          countryCode: citySets.countryCode,
-          city: citySets.city,
-          coverPhotoId: citySets.coverPhotoId,
-          coverPhoto: {
-            url: photos.url,
-            title: photos.title,
-            blurData: photos.blurData,
-          },
-        })
-        .from(citySets)
-        .innerJoin(
-          photos,
-          and(
-            eq(photos.id, citySets.coverPhotoId),
-            eq(photos.visibility, "public"),
-          ),
-        )
-        .orderBy(desc(citySets.updatedAt))
+      const items = await ctx.db
+        .select()
+        .from(galleries)
+        .where(eq(galleries.isPublished, true))
+        .orderBy(desc(galleries.updatedAt))
         .limit(limit);
 
-      return data;
+      const coverIds = items
+        .map((g) => g.coverPhotoId)
+        .filter((id): id is string => Boolean(id));
+
+      const covers = coverIds.length
+        ? await ctx.db
+            .select({
+              id: photos.id,
+              url: photos.url,
+              title: photos.title,
+              blurData: photos.blurData,
+            })
+            .from(photos)
+            .where(
+              and(
+                inArray(photos.id, coverIds),
+                eq(photos.visibility, "public"),
+              ),
+            )
+        : [];
+
+      const countMap = new Map<unknown, number>();
+
+      if (items.length > 0) {
+        const counts = await ctx.db
+          .select({ galleryId: photos.galleryId, count: sql<number>`COUNT(*)::int` })
+          .from(photos)
+          .where(
+            inArray(
+              photos.galleryId,
+              items.map((g) => g.id),
+            ),
+          )
+          .groupBy(photos.galleryId);
+
+        counts.forEach((c) => countMap.set(c.galleryId, c.count));
+      }
+
+      return items.map((g) => {
+        const cover = covers.find((c) => c.id === g.coverPhotoId) ?? null;
+        return {
+          ...g,
+          coverPhoto: cover,
+          photoCount: countMap.get(g.id) ?? 0,
+        };
+      });
     }),
   getPhotoById: baseProcedure
     .input(

@@ -1,6 +1,6 @@
-# Standalone Configuration (Local Postgres + RustFS)
-# Run with: docker compose up
-# Override defaults by creating a .env file (see .env.example)
+# Standalone Configuration (Local Postgres + RustFS) — DEVELOPMENT MODE
+# Run with: docker compose -f docker-compose.standalone.yml up
+# This environment runs `next dev` with Fast Refresh (no next build on start).
 services:
   postgres:
     image: postgres:15-alpine
@@ -40,6 +40,8 @@ services:
       until /usr/bin/mc alias set myminio http://rustfs:9000 $${RUSTFS_ACCESS_KEY:-rustfsadmin} $${RUSTFS_SECRET_KEY:-rustfsadmin}; do echo '...waiting...' && sleep 1; done;
       /usr/bin/mc mb myminio/photography --ignore-existing;
       /usr/bin/mc anonymous set public myminio/photography;
+      printf '%s' '<CORSConfiguration><CORSRule><AllowedOrigin>http://localhost:3000</AllowedOrigin><AllowedMethod>GET</AllowedMethod><AllowedMethod>PUT</AllowedMethod><AllowedMethod>POST</AllowedMethod><AllowedMethod>HEAD</AllowedMethod><AllowedHeader>*</AllowedHeader><ExposeHeader>ETag</ExposeHeader></CORSRule></CORSConfiguration>' > /tmp/cors.xml;
+      /usr/bin/mc cors set myminio/photography /tmp/cors.xml;
       exit 0;
       "
 
@@ -62,24 +64,19 @@ services:
   app:
     build:
       context: .
+      dockerfile: Dockerfile
       target: dev
     restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
+      # Mount local source into the container
+      - .:/app
+      # Keep node_modules inside the container (do not overwrite with host's)
+      - node_modules:/app/node_modules
+      # Persist Next.js cache for fast restarts
       - next_cache:/app/.next
-    command: >
-      /bin/sh -c "
-        echo 'Waiting for database...' &&
-        bun run db:push &&
-        echo 'Building application (SSG)...' &&
-        bun run build &&
-        echo 'Copying static assets...' &&
-        cp -r .next/static .next/standalone/.next/static &&
-        cp -r public .next/standalone/public &&
-        echo 'Starting server...' &&
-        bun .next/standalone/server.js
-      "
+    command: bun run dev
     environment:
       # Database
       DATABASE_PROVIDER: local
@@ -92,16 +89,15 @@ services:
       # App
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
 
-      # S3 (RustFS)
-      S3_ENDPOINT: http://rustfs:9000
+      # S3 (RustFS) — use localhost so the presigned URLs are reachable
+      # from the browser (rustfs:9000 only resolves inside the docker network).
+      # The app container reaches localhost:9000 via extra_hosts host-gateway.
+      S3_ENDPOINT: http://localhost:9000
       S3_BUCKET_NAME: ${POSTGRES_DB:-photography}
       S3_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
       S3_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
       S3_PUBLIC_URL: http://localhost:9000/${POSTGRES_DB:-photography}
       NEXT_PUBLIC_S3_PUBLIC_URL: http://localhost:9000/${POSTGRES_DB:-photography}
-
-      # Mapbox (Optional, needs real token for maps)
-      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: ${NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN:-}
     extra_hosts:
       - "localhost:host-gateway"
     depends_on:
@@ -115,4 +111,5 @@ services:
 volumes:
   postgres_data:
   rustfs_data:
+  node_modules:
   next_cache:

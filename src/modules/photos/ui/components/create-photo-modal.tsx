@@ -5,7 +5,7 @@ import MultiStepForm from "./multi-step-form";
 import { useModal } from "@/hooks/use-modal";
 
 const CreatePhotoModal = () => {
-  const { isOpen, onClose } = useModal();
+  const { isOpen, onClose, galleryId } = useModal();
 
   return (
     <ResponsiveModal
@@ -15,7 +15,7 @@ const CreatePhotoModal = () => {
       className="sm:max-w-3xl"
       dismissible={false}
     >
-      <MultiStepForm />
+      <MultiStepForm initialGalleryId={galleryId} />
     </ResponsiveModal>
   );
 };

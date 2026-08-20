@@ -71,7 +71,7 @@ const EmptyStatus = () => {
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button variant="outline" size="sm" onClick={modal.onOpen}>
+        <Button variant="outline" size="sm" onClick={() => modal.onOpen()}>
           Add Photos
         </Button>
       </EmptyContent>
