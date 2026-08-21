@@ -5,6 +5,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 
 import ProfileCard from "@/modules/home/ui/components/profile-card";
+import LatestGalleryCard from "@/modules/home/ui/components/latest-gallery-card";
 import Footer from "@/components/footer";
 
 import {
@@ -40,18 +41,19 @@ const page = async () => {
         <div className="hidden lg:block lg:w-1/2" />
         {/* RIGHT CONTENT - Scrollable */}
         <div className="w-full mt-3 lg:mt-0 lg:w-1/2 space-y-3 pb-3">
+          
           {/* PROFILE CARD  */}
           <ProfileCard />
 
+          {/* LAST GALLERY CARD  */}
+          <LatestGalleryCard />
+
           {/* GALLERIES CARD  */}
-          <div className="p-4 lg:p-5 bg-muted rounded-xl">
-            <p className="text-sm font-light mb-3">Galerías</p>
-            <Suspense fallback={<GalleriesViewLoadingStatus />}>
-              <ErrorBoundary fallback={<p>Something went wrong</p>}>
-                <GalleriesView />
-              </ErrorBoundary>
-            </Suspense>
-          </div>
+          <Suspense fallback={<GalleriesViewLoadingStatus />}>
+            <ErrorBoundary fallback={<p>Something went wrong</p>}>
+              <GalleriesView />
+            </ErrorBoundary>
+          </Suspense>
 
           <Footer />
         </div>
