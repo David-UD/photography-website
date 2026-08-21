@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 
 interface PhotoIdViewProps {
   id: string;
@@ -39,8 +40,12 @@ export const PhotoIdView = ({ id }: PhotoIdViewProps) => {
 
   const updateMutation = useMutation(
     trpc.photos.update.mutationOptions({
-      onSuccess: () => {},
-      onError: () => {},
+      onSuccess: () => {
+        toast.success("Changes saved");
+      },
+      onError: () => {
+        toast.error("Failed to save changes");
+      },
     })
   );
 

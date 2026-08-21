@@ -20,6 +20,8 @@ import { Alert, AlertTitle } from "@/components/ui/alert";
 import { OctagonAlert } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "../../lib/auth-client";
+import { useSiteProfile } from "@/modules/site/lib/use-site-profile";
+import { siteImageUrl } from "@/modules/site/lib/site-image-url";
 
 const signInSchema = z.object({
   email: z.email(),
@@ -31,6 +33,8 @@ const signInSchema = z.object({
 export const SignInView = () => {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const profile = useSiteProfile();
+  const coverUrl = siteImageUrl(profile.coverImage, "/bg.jpg");
 
   const form = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
@@ -132,8 +136,8 @@ export const SignInView = () => {
           </Form>
           <div className="col-span-2 bg-radial from-sidebar-accent to-sidebar relative hidden md:flex flex-col gap-y-4 items-center justify-center">
             <Image
-              src="/bg.jpg"
-              alt="Better nextjs"
+              src={coverUrl}
+              alt="Cover"
               width={1920}
               height={1080}
               className="size-full object-cover"

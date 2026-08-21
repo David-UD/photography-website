@@ -10,7 +10,6 @@ const Navbar = () => {
         <div className="hidden lg:flex gap-4">
           <FlipLink href="/galerias">Galerías</FlipLink>
           <FlipLink href="/about">Sobre mí</FlipLink>
-          <FlipLink href="/servicios">Servicios</FlipLink>
           <FlipLink href="/contacto">Contacto</FlipLink>
         </div>
         <ThemeSwitch />

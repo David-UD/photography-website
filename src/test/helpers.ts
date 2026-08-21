@@ -24,6 +24,7 @@ export function buildPhotoInput(overrides: Record<string, unknown> = {}) {
     height: 1000,
     blurData: "data:image/png;base64,test",
     visibility: "public" as const,
+    galleryId: "00000000-0000-0000-0000-000000000001",
     ...overrides,
   };
 }

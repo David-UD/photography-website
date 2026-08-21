@@ -10,7 +10,7 @@ import {
 import { SiXiaohongshu } from "react-icons/si";
 
 // icon map
-const iconMap = {
+const iconMap: Record<string, React.ReactNode> = {
   Instagram: <PiInstagramLogo size={18} />,
   GitHub: <PiGithubLogo size={18} />,
   X: <PiXLogo size={18} />,
@@ -18,10 +18,8 @@ const iconMap = {
   "Contact me": <MdEmail size={18} />,
 };
 
-export type ContactCardTitle = keyof typeof iconMap;
-
 interface Props {
-  title: ContactCardTitle;
+  title: string;
   href?: string;
   className?: string;
 }
@@ -42,7 +40,7 @@ const ContactCard = ({ title, href, className }: Props) => {
         <div className="relative inline-block group font-light text-sm h-full w-full">
           {/* Default Text (visible initially, moves down on hover) */}
           <span className="block transform transition-transform duration-200 ease-in-out group-hover:-translate-y-full">
-            {iconMap[title]}
+            {iconMap[title] ?? <PiArrowUpRight size={18} />}
           </span>
 
           {/* Hover Text (hidden initially, moves up on hover) */}

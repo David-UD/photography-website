@@ -12,6 +12,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 
 import { Readex_Pro } from "next/font/google";
+import { cookies } from "next/headers";
 
 const readexPro = Readex_Pro({
   subsets: ["latin"],
@@ -26,17 +27,27 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Resolve the initial theme on the server (SSR-readable cookie) so we can
+  // set the `dark` class directly on <html> and avoid any inline <script>.
+  const cookieStore = await cookies();
+  const stored = cookieStore.get("theme")?.value;
+  const initialDark = stored === "dark";
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={initialDark ? "dark" : undefined}
+      suppressHydrationWarning
+    >
       <body className={`${readexPro.className} antialiased`}>
         <NuqsAdapter>
           <TRPCReactProvider>
-            <ThemeProvider attribute="class">
+            <ThemeProvider>
               <ThemeColorMeta />
               <Toaster />
               {children}

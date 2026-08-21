@@ -5,9 +5,13 @@ import Link from "next/link";
 import ContactCard from "../../../../components/contact-card";
 import { PiArrowUpRight } from "react-icons/pi";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { siteConfig } from "@/site.config";
+import { getSiteProfile } from "@/modules/site/server/site-data";
+import { siteImageUrl } from "@/modules/site/lib/site-image-url";
 
-const ProfileCard = () => {
+const ProfileCard = async () => {
+  const profile = await getSiteProfile();
+  const avatarUrl = siteImageUrl(profile.avatar, "/avatar.jpg");
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3 gap-4 items-stretch">
       <div className="col-span-1 md:col-span-2 lg:col-span-1 xl:col-span-2">
@@ -18,19 +22,19 @@ const ProfileCard = () => {
           <div className="flex gap-4 items-center">
             {/* AVATAR  */}
             <Avatar className="size-[60px]">
-              <AvatarImage src={siteConfig.avatar} alt="Avatar" />
-              <AvatarFallback>{siteConfig.initials}</AvatarFallback>
+              <AvatarImage src={avatarUrl} alt="Avatar" />
+              <AvatarFallback>{profile.initials}</AvatarFallback>
             </Avatar>
 
             {/* NAME  */}
             <div className="flex flex-col gap-[2px]">
-              <h1 className="text-lg">{siteConfig.name}</h1>
-              <p className="text-sm text-text-muted">{siteConfig.role}</p>
+              <h1 className="text-lg">{profile.name}</h1>
+              <p className="text-sm text-text-muted">{profile.role}</p>
             </div>
           </div>
 
           <div className="lg:mt-4 xl:mt-0">
-            <p className="text-text-muted text-[15px]">{siteConfig.bio}</p>
+            <p className="text-text-muted text-[15px]">{profile.bio}</p>
           </div>
 
           <div className="absolute top-8 right-8 opacity-0 group-hover:top-6 group-hover:right-6 group-hover:opacity-100 transition-all duration-300 ease-in-out">
@@ -40,11 +44,11 @@ const ProfileCard = () => {
       </div>
 
       <div className="col-span-1 md:col-span-1 lg:col-span-1 xl:col-span-1 flex flex-col justify-between gap-3">
-        {siteConfig.socialLinks.map((link) => (
+        {profile.socialLinks.map((link) => (
           <ContactCard
-            key={link.title}
+            key={link.id}
             title={link.title}
-            href={link.href}
+            href={link.url}
             {...(link.primary && {
               className:
                 "bg-primary text-white dark:text-black hover:bg-primary",

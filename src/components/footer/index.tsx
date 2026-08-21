@@ -1,21 +1,26 @@
 import FooterNav from "./footer-nav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { siteConfig } from "@/site.config";
+import { getSiteProfile } from "@/modules/site/server/site-data";
+import { siteImageUrl } from "@/modules/site/lib/site-image-url";
 
-const Footer = () => {
+const Footer = async () => {
+  const profile = await getSiteProfile();
+  const avatarUrl = siteImageUrl(profile.avatar, "/avatar.jpg");
+
   return (
     <div className="flex flex-col items-center lg:items-start p-16 pb-12 gap-8 lg:gap-16 rounded-xl font-light relative flex-1 bg-primary text-white dark:text-black">
       <div className="flex flex-col lg:flex-row gap-4 items-center">
         {/* AVATAR  */}
         <Avatar className="size-[60px]">
-          <AvatarImage src={siteConfig.avatar} alt="avatar" sizes="60px" />
-          <AvatarFallback>{siteConfig.initials}</AvatarFallback>
+          <AvatarImage src={avatarUrl} alt="avatar" sizes="60px" />
+          <AvatarFallback>{profile.initials}</AvatarFallback>
         </Avatar>
 
         {/* NAME  */}
         <div className="flex flex-col items-center lg:items-start gap-[2px]">
-          <h1 className="text-2xl">{siteConfig.name}</h1>
-          <p className="text-sm opacity-60">{siteConfig.role}</p>
+          <h1 className="text-2xl">{profile.name}</h1>
+          <p className="text-sm opacity-60">{profile.role}</p>
         </div>
       </div>
       <div className="grid lg:w-full grid-cols-1 lg:grid-cols-3 gap-7 lg:gap-14">
@@ -25,7 +30,6 @@ const Footer = () => {
             { title: "Home", href: "/" },
             { title: "Galerías", href: "/galerias" },
             { title: "Sobre mí", href: "/about" },
-            { title: "Servicios", href: "/servicios" },
             { title: "Contacto", href: "/contacto" },
           ]}
         />

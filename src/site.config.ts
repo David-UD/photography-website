@@ -9,8 +9,6 @@
  * ============================================================================
  */
 
-import type { ContactCardTitle } from "@/components/contact-card";
-
 export const siteConfig = {
   /** Site name used in metadata, logo, and branding */
   name: "Sera",
@@ -39,7 +37,8 @@ export const siteConfig = {
     description: "Sera Photography",
   },
 
-  /** Social links shown in profile card and footer */
+  /** Social links shown in profile card and footer.
+   * Used as defaults; the live values are managed from the dashboard. */
   socialLinks: [
     {
       title: "Instagram",
@@ -59,7 +58,7 @@ export const siteConfig = {
       /** If true, this link gets the primary button style */
       primary: true,
     },
-  ] as { title: ContactCardTitle; href: string; primary?: boolean }[],
+  ] as { title: string; href: string; primary?: boolean }[],
 
   /** Footer attribution */
   footer: {
@@ -68,8 +67,8 @@ export const siteConfig = {
       href: "https://templates.gola.io/template/hanssen",
     },
     poweredBy: {
-      name: "ECarry",
-      href: "https://github.com/ecarry",
+      name: "David Uc",
+      href: "https://www.linkedin.com/in/david-uc/",
     },
   },
 
@@ -83,18 +82,6 @@ export const siteConfig = {
    */
   // imageLoader: "cloudflare" as "cloudflare" | "default",
   imageLoader: "default" as "cloudflare" | "default",
-
-  /**
-   * Gear / equipment shown on the About page.
-   * Each item has a brand and model name.
-   */
-  gear: [
-    { brand: "SONY", model: "Alpha 7RⅡ" },
-    { brand: "DJI", model: "Air 2S" },
-    { brand: "Tamron", model: "50-400mm F/4.5-6.3 Di III VC VXD" },
-    { brand: "Sigma", model: "35mm F/1.4 DG HSM" },
-    { brand: "Viltrox", model: "AF 40mm F/2.5 FE" },
-  ],
 } as const;
 
 export type SiteConfig = typeof siteConfig;

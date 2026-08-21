@@ -37,6 +37,21 @@ const data = {
       url: "/dashboard/profile",
       icon: "user",
     },
+    {
+      title: "Sitio",
+      url: "/dashboard/site",
+      icon: "settings",
+    },
+    {
+      title: "Redes sociales",
+      url: "/dashboard/site/redes",
+      icon: "links",
+    },
+    {
+      title: "Servicios",
+      url: "/dashboard/site/servicios",
+      icon: "services",
+    },
   ],
   navSecondary: [
     {

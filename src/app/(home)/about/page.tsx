@@ -9,19 +9,29 @@ import CameraCard from "../../../modules/home/ui/components/camera-card";
 import ProfileCard from "../../../modules/home/ui/components/profile-card";
 import CardContainer from "@/components/card-container";
 import VectorCombined from "@/components/vector-combined";
-import { siteConfig } from "@/site.config";
+import { getSiteProfile, getSiteServices } from "@/modules/site/server/site-data";
+import { siteImageUrl } from "@/modules/site/lib/site-image-url";
 
 export const metadata: Metadata = {
   title: "About",
   description: "About page",
 };
 
-const AboutPage = () => {
+const AboutPage = async () => {
+  const [profile, serviceItems] = await Promise.all([
+    getSiteProfile(),
+    getSiteServices(),
+  ]);
+  const coverUrl = siteImageUrl(profile.coverImage, "/bg.jpg");
+
   return (
     <div className="flex flex-col gap-3 lg:gap-0 lg:flex-row w-full">
       {/* LEFT CONTENT - Fixed */}
       <div className="w-full h-[70vh] lg:w-1/2 lg:fixed lg:top-0 lg:left-0 lg:h-screen p-0 lg:p-3">
-        <div className="w-full h-full relative bg-[url(/bg.jpg)] bg-top bg-cover rounded-xl">
+        <div
+          className="w-full h-full relative bg-top bg-cover rounded-xl"
+          style={{ backgroundImage: `url(${coverUrl})` }}
+        >
           <div className="absolute right-0 bottom-0">
             <VectorCombined title="About" position="bottom-right" />
           </div>
@@ -45,11 +55,13 @@ const AboutPage = () => {
         {/* CAMERA CARD  */}
         <CameraCard />
 
-        {siteConfig.gear.map((item) => (
-          <CardContainer key={`${item.brand}-${item.model}`}>
-            <div className="flex items-center justify-between p-6">
-              <h1 className="text-lg">{item.brand}</h1>
-              <p className="text-sm">{item.model}</p>
+        {serviceItems.map((service) => (
+          <CardContainer key={service.id}>
+            <div className="p-6">
+              <h1 className="text-lg">{service.title}</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {service.description}
+              </p>
             </div>
           </CardContainer>
         ))}

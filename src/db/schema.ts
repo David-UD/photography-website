@@ -9,6 +9,7 @@ import {
   uniqueIndex,
   index,
   pgEnum,
+  integer,
 } from "drizzle-orm/pg-core";
 import {
   createInsertSchema,
@@ -151,6 +152,8 @@ export const galleriesRelations = relations(galleries, ({ one, many }) => ({
 export const photosInsertSchema = createInsertSchema(photos).extend({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().min(1, { message: "Description is required" }),
+  galleryId: z.string().uuid({ message: "Gallery is required" }),
+  visibility: z.enum(["public", "private"]).default("public"),
 });
 export const photosSelectSchema = createSelectSchema(photos);
 export const photosUpdateSchema = createUpdateSchema(photos)
@@ -186,9 +189,107 @@ export const galleriesUpdateSchema = z.object({
   isPublished: z.boolean().optional(),
 });
 
+/***************
+ ****************
+ *  Site Content *
+ ****************
+ ***************/
+
+// Single-row table holding the photographer's public profile and site metadata.
+export const siteProfile = pgTable("site_profile", {
+  id: text("id").primaryKey().default("default"),
+  name: text("name").notNull().default(""),
+  tagline: text("tagline").notNull().default(""),
+  role: text("role").notNull().default(""),
+  bio: text("bio").notNull().default(""),
+  initials: text("initials").notNull().default(""),
+  // Long-form "About" text shown on the public About page. Admin-manageable.
+  about: text("about")
+    .notNull()
+    .default(
+      "With a focus on both candid moments and stunning landscapes, I strive to evoke emotion and tell stories through my work. My photography blends the rawness of everyday life with the artistry of fine art, allowing viewers to connect with each image on a deeper level.\n\nWhether I'm exploring urban environments or venturing into nature, my goal is to highlight the extraordinary in the ordinary. Through my lens, I invite you to join me on this visual journey of discovery and inspiration."
+    ),
+  // Storage keys (or local paths like "/avatar.jpg"). Use keyToUrl to build the public URL.
+  avatar: text("avatar"),
+  coverImage: text("cover_image"),
+  ...timestamps,
+});
+
+export const siteProfileInsertSchema = createInsertSchema(siteProfile)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .partial();
+export const siteProfileSelectSchema = createSelectSchema(siteProfile);
+export const siteProfileUpdateSchema = createUpdateSchema(siteProfile)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .partial()
+  .extend({
+    avatar: z.string().nullable().optional(),
+    coverImage: z.string().nullable().optional(),
+  });
+
+// Exactly four configurable social links (position 1-4).
+export const socialLinks = pgTable(
+  "social_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    url: text("url").notNull(),
+    primary: boolean("primary").default(false).notNull(),
+    position: integer("position").notNull(),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("unique_social_link_position").on(t.position)],
+);
+
+export const socialLinksSelectSchema = createSelectSchema(socialLinks);
+export const socialLinksUpdateSchema = z.object({
+  links: z
+    .array(
+      z.object({
+        title: z.string().min(1, { message: "Title is required" }),
+        url: z.string().min(1, { message: "URL is required" }),
+        primary: z.boolean().default(false),
+        position: z.number().int().min(1).max(4),
+      }),
+    )
+    .length(4, { message: "Exactly 4 social links are required" }),
+});
+
+// Admin-manageable services (replace the old hardcoded gear list).
+export const services = pgTable(
+  "services",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    position: integer("position").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [index("services_position_idx").on(t.position)],
+);
+
+export const servicesInsertSchema = createInsertSchema(services).extend({
+  title: z.string().min(1, { message: "Title is required" }),
+  description: z.string().min(1, { message: "Description is required" }),
+});
+export const servicesSelectSchema = createSelectSchema(services);
+export const servicesUpdateSchema = createUpdateSchema(services)
+  .pick({
+    id: true,
+    title: true,
+    description: true,
+    position: true,
+  })
+  .extend({
+    id: z.string().uuid(),
+  });
+
 // Types
 export type Photo = InferSelectModel<typeof photos>;
 export type Gallery = InferSelectModel<typeof galleries>;
 export type GalleryWithPhotos = Gallery & { photos: Photo[] } & {
   coverPhoto: Photo | null;
 };
+export type SiteProfile = InferSelectModel<typeof siteProfile>;
+export type SocialLink = InferSelectModel<typeof socialLinks>;
+export type Service = InferSelectModel<typeof services>;

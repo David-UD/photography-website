@@ -38,7 +38,7 @@ export function SecondStep({
     defaultValues: {
       title: initialData?.title || "",
       description: initialData?.description || "",
-      visibility: initialData?.visibility || "private",
+      visibility: initialData?.visibility ?? "public",
       isFavorite: initialData?.isFavorite || false,
       galleryId: initialData?.galleryId ?? null,
     },
@@ -128,7 +128,7 @@ export function SecondStep({
                       value={field.value ?? ""}
                       className="w-full p-2 border rounded-md bg-background"
                     >
-                      <option value="">No gallery</option>
+                      <option value="">Select a gallery</option>
                       {galleries.map((g) => (
                         <option key={g.id} value={g.id}>
                           {g.title}

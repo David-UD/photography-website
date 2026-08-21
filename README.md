@@ -46,11 +46,10 @@ All personal branding is centralized in **one file**: `src/site.config.ts`. Edit
 | `avatar`      | Avatar image path (place file in `/public/avatar.jpg`)                  |
 | `initials`    | Fallback text when avatar fails to load                                 |
 | `metadata`    | SEO title & description                                                 |
-| `socialLinks` | Social links with icons (Instagram, GitHub, X, Xiaohongshu, Contact me) |
+| `socialLinks` | Default social links (managed live from the dashboard)                  |
 | `footer`      | Footer attribution credits                                              |
 | `mapbox`      | Custom Mapbox style URLs for light/dark themes                          |
 | `imageLoader` | Set to `"cloudflare"` or `"default"` based on your storage provider     |
-| `gear`        | Camera gear shown on the About page                                     |
 
 **Quick start:**
 

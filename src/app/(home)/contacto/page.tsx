@@ -3,18 +3,25 @@ import Footer from "@/components/footer";
 import ProfileCard from "../../../modules/home/ui/components/profile-card";
 import CardContainer from "@/components/card-container";
 import VectorCombined from "@/components/vector-combined";
-import { siteConfig } from "@/site.config";
+import { getSiteProfile } from "@/modules/site/server/site-data";
+import { siteImageUrl } from "@/modules/site/lib/site-image-url";
 
 export const metadata: Metadata = {
   title: "Contacto",
   description: "Contacto",
 };
 
-const ContactoPage = () => {
+const ContactoPage = async () => {
+  const profile = await getSiteProfile();
+  const coverUrl = siteImageUrl(profile.coverImage, "/bg.jpg");
+
   return (
     <div className="flex flex-col gap-3 lg:gap-0 lg:flex-row w-full">
       <div className="w-full h-[70vh] lg:w-1/2 lg:fixed lg:top-0 lg:left-0 lg:h-screen p-0 lg:p-3">
-        <div className="w-full h-full relative bg-[url(/bg.jpg)] bg-top bg-cover rounded-xl">
+        <div
+          className="w-full h-full relative bg-top bg-cover rounded-xl"
+          style={{ backgroundImage: `url(${coverUrl})` }}
+        >
           <div className="absolute right-0 bottom-0">
             <VectorCombined title="Contacto" position="bottom-right" />
           </div>
@@ -34,12 +41,12 @@ const ContactoPage = () => {
               escribirme.
             </p>
             <div className="mt-4 flex flex-col gap-2">
-              {siteConfig.socialLinks
+              {profile.socialLinks
                 .filter((link) => link.primary)
                 .map((link) => (
                   <a
-                    key={link.href}
-                    href={link.href}
+                    key={link.id}
+                    href={link.url}
                     className="text-sm underline underline-offset-2"
                   >
                     {link.title}

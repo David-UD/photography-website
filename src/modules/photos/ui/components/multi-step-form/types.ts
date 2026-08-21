@@ -16,9 +16,9 @@ export type FirstStepData = z.infer<typeof firstStepSchema>;
 export const secondStepSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().min(1, { message: "Description is required" }),
-  visibility: z.enum(["private", "public"]).default("private"),
+  visibility: z.enum(["private", "public"]).default("public"),
   isFavorite: z.boolean().default(false),
-  galleryId: z.string().uuid().nullish(),
+  galleryId: z.string().uuid({ message: "Please select a gallery" }),
 });
 
 export type SecondStepData = z.infer<typeof secondStepSchema>;
@@ -68,7 +68,7 @@ export const INITIAL_FORM_VALUES: Partial<PhotoFormData> = {
   url: "",
   title: "",
   description: "",
-  visibility: "private",
+  visibility: "public",
   isFavorite: false,
   galleryId: null,
 };
